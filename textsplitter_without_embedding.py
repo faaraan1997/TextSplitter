@@ -2,8 +2,7 @@ import os
 import logging
 from typing import List, Generator
 from chunking.cluster_semantic_chunker import ClusterSemanticChunker
-from docling.datamodel.base_models import Page
-from docling.datamodel.split_page import SplitPage
+from docling.datamodel.base_models import Page, SplitPage
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -45,15 +44,33 @@ class SemanticTextSplitter:
             pages (List[Page]): Input document pages.
 
         Yields:
-            SplitPage: Semantically split chunks with page_num and text.
+            SplitPage: Semantically split chunks with correct page_num and text.
         """
-        full_text = "".join(page.text for page in pages)
-
-        if not full_text.strip():
-            logger.warning("No text found in pages.")
+        if not pages:
+            logger.warning("No pages provided.")
             return
 
-        chunks = self.chunker.split_text(full_text)
+        all_text = "".join(page.text for page in pages)
 
+        if not all_text.strip():
+            logger.warning("Pages contain no text.")
+            return
+
+        chunks = self.chunker.split_text(all_text)
+
+        def find_page(offset: int) -> int:
+            for i in range(len(pages) - 1):
+                if offset >= pages[i].offset and offset < pages[i + 1].offset:
+                    return pages[i].page_num
+            return pages[-1].page_num
+
+        current_offset = 0
         for chunk in chunks:
-            yield SplitPage(page_num=0, text=chunk)
+            chunk_start = all_text.find(chunk, current_offset)
+            if chunk_start == -1:
+                page_num = 0
+            else:
+                page_num = find_page(chunk_start)
+                current_offset = chunk_start + len(chunk)
+            yield SplitPage(page_num=page_num, text=chunk)
+
