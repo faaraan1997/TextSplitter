@@ -2,7 +2,8 @@ import os
 import logging
 from typing import List, Generator
 from chunking.cluster_semantic_chunker import ClusterSemanticChunker
-from docling.datamodel.base_models import Page, SplitPage
+from docling.datamodel.base_models import Page
+from docling.datamodel.split_page import SplitPage
 from dotenv import load_dotenv
 
 # Load environment variables
